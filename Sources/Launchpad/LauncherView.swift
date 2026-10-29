@@ -50,8 +50,9 @@ struct LauncherView: View {
                             mainGrid(size: size, metrics: m)
                         }
                     }
-                    .opacity(folder == nil ? 1 : 0.3)
-                    .blur(radius: folder == nil || c.reduceMotion ? 0 : 8)
+                    // Dimmed rather than blurred: a full-screen live blur under the folder's glass
+                    // made sliding between folder pages stutter.
+                    .opacity(folder == nil ? 1 : 0.22)
                     .scaleEffect(folder == nil || c.reduceMotion ? 1 : 0.95)
                     .allowsHitTesting(false)
 

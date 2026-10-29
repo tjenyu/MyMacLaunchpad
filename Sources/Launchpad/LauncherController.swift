@@ -95,7 +95,7 @@ final class LauncherController: ObservableObject {
     private var saveWork: DispatchWorkItem?
     private var scanWork: DispatchWorkItem?
     private var scanning = false
-    private var lastWheelFlip = Date.distantPast
+    private var lastWheelEvent = Date.distantPast
     private var trackpadScrolling = false
     @Published private(set) var isSettling = false
     /// The item just dropped; it replaces the settled ghost in place instead of fading in.
@@ -293,7 +293,9 @@ final class LauncherController: ObservableObject {
         let m = metrics(for: size)
         let offset = openFolderID == nil ? scrollOffset : 0
         var out: [RenderedItem] = []
-        let range = max(0, currentPage - 1)...min(layout.pages.count - 1, currentPage + 1)
+        // Behind an open folder only the current page shows; neighbours are needed only while paging.
+        let spread = openFolderID == nil ? 1 : 0
+        let range = max(0, currentPage - spread)...min(layout.pages.count - 1, currentPage + spread)
         for p in range {
             let gap = drag?.context == .main && drag?.page == p ? drag?.gapIndex : nil
             for (i, item) in layout.pages[p].enumerated() {
@@ -507,8 +509,12 @@ final class LauncherController: ObservableObject {
             }
         } else {
             let delta = abs(e.deltaX) > abs(e.deltaY) ? e.deltaX : e.deltaY
-            guard abs(delta) > 0.1, Date().timeIntervalSince(lastWheelFlip) > 0.3 else { return }
-            lastWheelFlip = Date()
+            guard abs(delta) > 0.1 else { return }
+            // One spin of the wheel arrives as a burst of events: flip once at its start and ignore
+            // the rest, so the page slide is never restarted halfway.
+            let now = Date()
+            defer { lastWheelEvent = now }
+            guard now.timeIntervalSince(lastWheelEvent) > 0.18 else { return }
             flipPage(delta < 0 ? 1 : -1)
         }
     }
